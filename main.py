@@ -20,24 +20,40 @@ POEM_LINES = [
 MAX_CHARS = 280
 
 
-def build_poem() -> str:
-    """Join the poem lines and validate the entry gate."""
-    poem = "\n".join(POEM_LINES)
+def validate_poem(poem: str) -> str:
+    """Enforce the entry gate: 1-280 chars, not only white space,
+    no trailing newline (the gate counts every code point)."""
     chars = len(poem)  # Unicode code points, per the rules
     if not 1 <= chars <= MAX_CHARS:
         raise ValueError(f"poem is {chars} chars, must be 1-{MAX_CHARS}")
     if not poem.strip():
         raise ValueError("poem must not be only white space")
+    if poem != poem.rstrip("\n"):
+        raise ValueError("poem must not end with a newline")
+    encoded = poem.encode("utf-8")
+    if len(encoded) != len(poem) + 2:  # only the em dash is multi-byte
+        raise ValueError("unexpected multi-byte characters in poem")
     return poem
 
 
-def main() -> None:
-    poem = build_poem()
+def build_poem() -> str:
+    """Join the poem lines and validate the entry gate."""
+    return validate_poem("\n".join(POEM_LINES))
+
+
+def write_entry(poem: str) -> str:
+    """Write the poem to /output/entry.txt and return the path."""
     out_dir = os.environ.get("OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
     with open(path, "w", encoding="utf-8") as f:
         f.write(poem)
+    return path
+
+
+def main() -> None:
+    poem = build_poem()
+    path = write_entry(poem)
     print(f"wrote {len(poem)} chars to {path}")
 
 
